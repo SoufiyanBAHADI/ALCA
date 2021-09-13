@@ -18,8 +18,6 @@ python -m main.py
 
 optional arguments:
   -h, --help            show this help message and exit
-  -d {heidelberg,secl-umons,fsdd}, --dataset {heidelberg,secl-umons,fsdd}
-                        The name of the dataset to load for learning.
   -p PATH, --path PATH  The path of the data set.
   --tau TAU             Neurons' time constant.
   --dt DT               Euler's resolution method clock.
