@@ -1,3 +1,10 @@
+"""
+Created on 30.09.2020
+@author: Soufiyan Bahadi
+@director: Jean Rouat
+@co-director: Eric Plourde
+"""
+
 from enum import Enum
 import matplotlib.pyplot as plt
 import os

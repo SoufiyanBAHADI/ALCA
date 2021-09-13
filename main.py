@@ -1,3 +1,10 @@
+"""
+Created on 30.09.2020
+@author: Soufiyan Bahadi
+@director: Jean Rouat
+@co-director: Eric Plourde
+"""
+
 import numpy as np
 from torch import optim
 import torch
@@ -163,7 +170,7 @@ def main(args):
                         device=device)
     # Load data
     data_loader = DataLoader(cm, normalize=True, batch_size=args.batch_size)
-    train_set, test_set = data_loader.load(args.dataset, args.path)
+    train_set, test_set = data_loader.load(args.path)
     # Create learning parameters
     if optimizer is None:
         if args.optimizer == 'adam':
@@ -197,12 +204,7 @@ if __name__ == '__main__':
         prog='ALCA',
         usage='%(prog)s [options]',
         description='Adaptive aproach applied to LCA for audio.')
-    parser.add_argument('-d',
-                        '--dataset',
-                        type=str,
-                        choices=["heidelberg", "secl-umons", "fsdd"],
-                        default='heidelberg',
-                        help='The name of the dataset to load for learning.')
+
     parser.add_argument('-p',
                         '--path',
                         default="/archive/bahs2702/heidelberg",

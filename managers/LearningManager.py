@@ -1,3 +1,10 @@
+"""
+Created on 30.09.2020
+@author: Soufiyan Bahadi
+@director: Jean Rouat
+@co-director: Eric Plourde
+"""
+
 class LearningManager:
     def __init__(self, optimizer, buffer_size, epochs, alpha=1, beta=1):
         self.alpha = alpha

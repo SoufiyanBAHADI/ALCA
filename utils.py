@@ -1,7 +1,8 @@
 """
-Created on 09.09.2020
+Created on 30.09.2020
 @author: Soufiyan Bahadi
-@supervisor: Jean Rouat
+@director: Jean Rouat
+@co-director: Eric Plourde
 """
 
 import numpy as np

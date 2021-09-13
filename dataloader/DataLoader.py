@@ -1,3 +1,10 @@
+"""
+Created on 30.09.2020
+@author: Soufiyan Bahadi
+@director: Jean Rouat
+@co-director: Eric Plourde
+"""
+
 import os
 import numpy as np
 from scipy.io import wavfile
