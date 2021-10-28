@@ -1,7 +1,7 @@
 ALCA
 ==========
 
-Adaptive approach for sparse representations using the locally competitive algorithm for audio , available at <https://github.com/NECOTIS/ALCA>. This is the code for the preprint available at ...
+Adaptive approach for sparse representations using the locally competitive algorithm for audio , available at <https://github.com/SoufiyanBAHADI/ALCA>. This is the code for the preprint available at https://arxiv.org/abs/2109.14705
 
 # Installation
 
