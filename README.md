@@ -17,7 +17,7 @@ cd ALCA
 python -m main.py
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help            shows this help message and exit
   -p PATH, --path PATH  The path of the data set.
   --tau TAU             Neurons' time constant.
   --dt DT               Euler's resolution method clock.
