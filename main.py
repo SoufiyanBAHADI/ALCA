@@ -179,14 +179,16 @@ def main(args):
             optimizer = optim.SGD(cm.parameters(), lr=args.lr, amsgrad=True)
         else:
             optimizer = optim.Adam(cm.parameters(), lr=args.lr, amsgrad=True)
+    else:
+        optimizer.param_groups[0]['params'] = cm.parameters()
     
     # Solved with checkpoint
-    for _ in range(args.resume):
-        for __ in range(len(train_set)):
-            for i in range(64):
-                optimizer.step()
-                if (i + 1) % 8 == 0 and i != 0:
-                    optimizer.zero_grad()
+    # for _ in range(args.resume):
+        # for __ in range(len(train_set)):
+            # for i in range(64):
+                # optimizer.step()
+                # if (i + 1) % 8 == 0 and i != 0:
+                    # optimizer.zero_grad()
     lm = LearningManager(optimizer=optimizer,
                          buffer_size=args.buffer_size,
                          epochs=args.epochs)
