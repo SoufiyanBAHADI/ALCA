@@ -5,12 +5,11 @@ Created on 30.09.2020
 @co-director: Eric Plourde
 """
 
-from enum import Enum
 import matplotlib.pyplot as plt
 import os
 import numpy as np
 from utils import size
-from constants import FONT_SIZE, FilterBank, Example
+from constants import FONT_SIZE, FilterBank
 
 
 class PlottingManager():
