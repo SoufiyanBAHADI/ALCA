@@ -98,7 +98,10 @@ def load_optimized_cbl(epoch=None):
 def load_optimizer(epoch):
     if epoch == 0:
         return None
-    return torch.load(EnvVar.CHECKPOINT_OPT.value)
+    path = os.path.join(
+        EnvVar.CHECKPOINT_OPT.value,
+        next(os.walk(EnvVar.CHECKPOINT_OPT.value), (None, None, []))[2][0])
+    return torch.load(path)
 
 
 def compute_snr(lca):
