@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 ```
 cd ALCA
-python -m main.py
+python main.py
 
 optional arguments:
   -h, --help            shows this help message and exit
