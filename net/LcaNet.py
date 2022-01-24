@@ -11,10 +11,11 @@ import torch.nn.functional as F
 
 from managers.ContextManager import ContextManager
 from managers.LearningManager import LearningManager
-from managers.PlottingManager import PlottingManager, Example
+from managers.PlottingManager import PlottingManager
 from net.HardShrink import HardShrink
 from net.Sparsity import Sparsity
 from utils import reconstruct, size
+from constants import Example
 
 
 class Lca(nn.Module):
