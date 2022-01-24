@@ -4,6 +4,7 @@ Created on 30.09.2020
 @director: Jean Rouat
 @co-director: Eric Plourde
 """
+from enum import Enum
 
 FONT_SIZE = "12"
 
