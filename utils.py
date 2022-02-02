@@ -46,6 +46,9 @@ def mel_space(low, high, num_channels):
 
 
 def load_optimized_cbl(epoch=None):
+    if epoch == 0:
+        return None, None, None
+    
     from tensorflow.python.summary.summary_iterator import summary_iterator
 
     c = []
