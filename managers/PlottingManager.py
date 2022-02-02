@@ -154,6 +154,7 @@ class PlottingManager():
         plt.subplot(121)
         plt.rcParams['font.size'] = FONT_SIZE
         plt.imshow(aGC_R, cmap=plt.cm.RdBu)
+        plt.clim(-lim, lim)
         plt.yticks([0, 5, 10, 15])
         plt.xlabel('Channel id')
         plt.ylabel('Channel id')

@@ -46,10 +46,11 @@ def mel_space(low, high, num_channels):
 
 
 def load_optimized_cbl(epoch=None):
-    if epoch == 0:
+    if epoch == 0: # No need to load parameters if the resume epoch is 0
         return None, None, None
-    
-    from tensorflow.python.summary.summary_iterator import summary_iterator
+
+    from tensorflow.data import TFRecordDataset
+    from tensorflow.core.util import event_pb2
 
     c = []
     b = []
@@ -64,8 +65,8 @@ def load_optimized_cbl(epoch=None):
     path = os.path.join(
         EnvVar.CHECKPOINT_CBL.value,
         next(os.walk(EnvVar.CHECKPOINT_CBL.value), (None, None, []))[2][0])
-    for e in summary_iterator(path):
-        for v in e.summary.value:
+    for e in TFRecordDataset(path):
+        for v in event_pb2.Event.FromString(e.numpy()).summary.value:
             if v.tag == 'Loss/train':
                 loss_train.append(v.simple_value)
             elif v.tag == 'Loss/test':
@@ -82,7 +83,7 @@ def load_optimized_cbl(epoch=None):
         if epoch is None:
             epoch = len(loss_train)
 
-        for v in e.summary.value:
+        for v in event_pb2.Event.FromString(e.numpy()).summary.value:
             if v.tag == 'C/epoch ' + str(epoch):
                 c.append([v.simple_value])
             elif v.tag == 'b/epoch ' + str(epoch):
