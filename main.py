@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-p',
                         '--path',
-                        default="/archive/bahs2702/heidelberg",
+                        default="/archive/heidelberg",
                         type=str,
                         help='The path of the data set.')
     parser.add_argument('--lang',
