@@ -7,6 +7,12 @@ Created on 30.09.2020
 from enum import Enum
 
 FONT_SIZE = "12"
+ENGLISH_MAX_LEN = 55718
+GERMAN_MAX_LEN = 65872 # Longest audio signal useful for zero padding
+# ENGLISH_TRAIN_NUM_SAMPLES = 4011
+# ENGLISH_TEST_NUM_SAMPLES = 1079
+# GERMAN_TRAIN_NUM_SAMPLES = 4145
+# GERMAN_TEST_NUM_SAMPLES = 1185
 
 class FilterBank(Enum):
     aGC = 0

@@ -8,9 +8,11 @@ Created on 30.09.2020
 import numpy as np
 from torch import optim
 import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
-from dataloader.DataLoader import DataLoader
+from dataloader.HdDataset import HdDataset, ToTensor, Normalize
 from managers.ContextManager import ContextManager
 from managers.LearningManager import LearningManager
 from managers.PlottingManager import PlottingManager
@@ -169,7 +171,8 @@ def main(args):
                         iters=args.iters,
                         device=device)
     # Load data
-    data_loader = DataLoader(cm, normalize=True, batch_size=args.batch_size)
+    data_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, args.eval), args.batch_size, True, num_workers=4, pin_memory=True, pin_memory_device=device)
+
     train_set, test_set = data_loader.load(args.path)
     # Create learning parameters
     if optimizer is None:
@@ -212,6 +215,11 @@ if __name__ == '__main__':
                         default="/archive/bahs2702/heidelberg",
                         type=str,
                         help='The path of the data set.')
+    parser.add_argument('--lang',
+                        choices=["english", "german", "both"],
+                        default="both",
+                        type=str,
+                        help='which subset you want to use')
     parser.add_argument('--tau',
                         type=float,
                         default=1e-2,
@@ -266,7 +274,7 @@ if __name__ == '__main__':
         '--eval',
         action='store_true',
         help=
-        'Specifies the evaluation. If false the algorithm will run in training mode'
+        'Specifies weither the algorithm will run in the evaluation mode or the train mode. If it is not specified the algorithm will run in training mode'
     )
     parser.add_argument('-v',
                         '--verbose',
