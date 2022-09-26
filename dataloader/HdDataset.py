@@ -51,7 +51,7 @@ class HdDataset(Dataset):
 class ToTensor:
     """Convert data in sample to Tensors."""
     def __call__(self, sample):
-        return {"recording": torch.from_numpy(sample['recording'][None, :]).float(),
+        return {"recording": torch.from_numpy(sample['recording'][None, :]).double(),
                 "label": torch.Tensor([sample['label']]).long()}
 
 class Normalize:

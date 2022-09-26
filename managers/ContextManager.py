@@ -121,4 +121,4 @@ class ContextManager:
 
         weights = weights / torch.norm(weights, p=2, dim=1).view(-1, 1)
         weights = weights.view(self.__t.shape[0], 1, -1).to(self.device)
-        return weights.float()
+        return weights.double()

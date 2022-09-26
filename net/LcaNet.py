@@ -74,14 +74,14 @@ class Lca(nn.Module):
             init_u = torch.zeros(mini_batch.shape[0],
                                  self.cm.num_channels,
                                  self.num_shifts,
-                                 dtype=torch.float32,
+                                 dtype=torch.float64,
                                  requires_grad=True,
                                  device=self.cm.device)
             # activation
             init_a = torch.zeros(mini_batch.shape[0],
                                  self.cm.num_channels,
                                  self.num_shifts,
-                                 dtype=torch.float32,
+                                 dtype=torch.float64,
                                  requires_grad=True,
                                  device=self.cm.device)
 
@@ -113,7 +113,7 @@ class Lca(nn.Module):
                             self.cm.num_channels,
                             self.num_shifts,
                             requires_grad=True,
-                            dtype=torch.float32,
+                            dtype=torch.float64,
                             device=self.cm.device)
 
         for it in range(self.cm.iters):
