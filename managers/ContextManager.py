@@ -13,6 +13,7 @@ class ContextManager:
     def __init__(self,
                  tau,
                  dt,
+                 fs,
                  c=None,
                  b=None,
                  filter_ord=None,
@@ -70,11 +71,11 @@ class ContextManager:
         self.num_channels = num_channels
         self.ker_len = ker_len
         self.iters = iters
-        self.__fs = None
         self.device = device
         self.__t = None
         self.__bandwidth = None
         self.__central_freq = None
+        self.fs = fs
 
     @property
     def fs(self):
@@ -120,4 +121,4 @@ class ContextManager:
 
         weights = weights / torch.norm(weights, p=2, dim=1).view(-1, 1)
         weights = weights.view(self.__t.shape[0], 1, -1).to(self.device)
-        return weights
+        return weights.float()

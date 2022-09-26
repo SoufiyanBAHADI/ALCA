@@ -9,10 +9,13 @@ from enum import Enum
 FONT_SIZE = "12"
 ENGLISH_MAX_LEN = 55718
 GERMAN_MAX_LEN = 65872 # Longest audio signal useful for zero padding
+FS = 48000  # Sample frequency in Hz
 # ENGLISH_TRAIN_NUM_SAMPLES = 4011
 # ENGLISH_TEST_NUM_SAMPLES = 1079
 # GERMAN_TRAIN_NUM_SAMPLES = 4145
 # GERMAN_TEST_NUM_SAMPLES = 1185
+CHECKPOINT_OPT = "checkpoint/opt"  # checkpoint dirrectory of the optimizer
+CHECKPOINT_CBL = "checkpoint/cbl"   # checkpoint dirrectory of parameters c b and l
 
 class FilterBank(Enum):
     aGC = 0

@@ -6,6 +6,7 @@ Created on 30.09.2020
 """
 
 import numpy as np
+import random
 from torch import optim
 import torch
 from torch.utils.data import DataLoader
@@ -16,11 +17,15 @@ from dataloader.HdDataset import HdDataset, ToTensor, Normalize
 from managers.ContextManager import ContextManager
 from managers.LearningManager import LearningManager
 from managers.PlottingManager import PlottingManager
-from constants import FilterBank, Example
+from constants import FilterBank, Example, FS, CHECKPOINT_CBL, CHECKPOINT_OPT
 from net.LcaNet import Lca
-from utils import device, compute_snr, load_optimized_cbl, load_optimizer, EnvVar
+from utils import device, compute_snr, load_optimized_cbl, load_optimizer
 import argparse
 
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(0xbadc0de)
+    random.seed(0xbadc0de)
 
 def run(lca, batches, mode='train', track=False):
     if mode == 'eval':
@@ -39,17 +44,17 @@ def run(lca, batches, mode='train', track=False):
             lca.cm.iters = 2048
             lca.pm.iters = lca.cm.iters
             lca.pm.track = True
-            lca(batch)
+            lca(batch["recording"])
             lca.pm.track = False
             lca.cm.iters = iters
-            lca.pm.plot_waveform(batch[Example.SIG_ID.value], lca.cm.fs)
+            lca.pm.plot_waveform(np.squeeze(batch["recording"][Example.SIG_ID.value].cpu().numpy()), lca.cm.fs)
             lca.pm.plot_spg(lca.spikegram[Example.SIG_ID.value], lca.cm.central_freq, lca.cm.num_channels, lca.num_shifts)
         lca.lm.optimizer.zero_grad()
-        lca(batch)
+        lca(batch["recording"])
         act += np.mean(lca.sp_nb)
         mse += np.mean(lca.mse)
         loss += np.mean(lca.loss)
-        snr += compute_snr(lca)
+        snr += compute_snr(lca.residual, batch["recording"])
 
     return loss / n, act / n, mse / n, snr / n
 
@@ -57,13 +62,13 @@ def run(lca, batches, mode='train', track=False):
 def fit(lca, train_loader, test_loader, eval, plot, start):
     if not eval:
         # tensorboard log
-        writer = SummaryWriter(log_dir="checkpoint/cbl")
+        writer = SummaryWriter(log_dir=CHECKPOINT_CBL)
         for e in range(start, lca.lm.epochs + start, 1):
             print(f'epoch {e}:')
             # Train
             loss, act, mse, snr = run(lca, train_loader, mode='train')
             # optimizer checkpoint
-            torch.save(lca.lm.optimizer, EnvVar.CHECKPOINT_OPT.value)
+            torch.save(lca.lm.optimizer, CHECKPOINT_OPT)
             # Write train results
             writer.add_scalar('Loss/train', loss, e)
             writer.add_scalar('Spikes number/train', act, e)
@@ -157,6 +162,7 @@ def main(args):
     optimizer = load_optimizer(args.resume)
     cm = ContextManager(tau=args.tau,
                         dt=args.dt,
+                        fs=FS,
                         c=c,
                         b=b,
                         filter_ord=filter_ord,
@@ -168,8 +174,11 @@ def main(args):
                         iters=args.iters,
                         device=device)
     # Load data
-    test_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, True), args.batch_size, True, num_workers=4, pin_memory=True, pin_memory_device=cm.device)
-    train_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, False), args.batch_size, True, num_workers=4, pin_memory=True, pin_memory_device=cm.device)
+    g = torch.Generator()
+    g.manual_seed(0xbadc0de)
+    
+    test_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, True), args.batch_size, True, num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)  #, pin_memory_device=str(cm.device))
+    train_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, False), args.batch_size, False, num_workers=4, pin_memory=True)  #, pin_memory_device=str(cm.device))
 
     # Create learning parameters
     if optimizer is None:
@@ -214,7 +223,7 @@ if __name__ == '__main__':
                         help='The path of the data set.')
     parser.add_argument('--lang',
                         choices=["english", "german", "both"],
-                        default="both",
+                        default="english",
                         type=str,
                         help='which subset you want to use')
     parser.add_argument('--tau',

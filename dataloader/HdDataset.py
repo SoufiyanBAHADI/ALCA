@@ -17,7 +17,6 @@ from constants import ENGLISH_MAX_LEN, GERMAN_MAX_LEN
 
 class HdDataset(Dataset):
     def __init__(self, context_manager, root_dir, transform, lang="english", eval=False):
-        self.context_manager = context_manager
         self.transform = transform
         self.__filenames = []
         mode = "test" if eval else "train"
@@ -32,13 +31,15 @@ class HdDataset(Dataset):
             self.max_len = ENGLISH_MAX_LEN
         else:
             self.max_len = max([ENGLISH_MAX_LEN, GERMAN_MAX_LEN])
+        self.max_len += context_manager.stride - (
+            self.max_len -
+            context_manager.ker_len) % context_manager.stride
     
     def __len__(self):
         return len(self.__filenames)
     
     def __getitem__(self, index):
-        fs, sig = wavfile.read(os.path.join(self.__filenames[index]))
-        self.context_manager.fs = fs
+        _, sig = wavfile.read(os.path.join(self.__filenames[index]))
         rec = np.zeros(self.max_len)
         rec[:len(sig)] = sig
         lab = int(self.__filenames[index][-5])

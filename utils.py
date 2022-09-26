@@ -8,17 +8,12 @@ Created on 30.09.2020
 import numpy as np
 import torch
 import torch.nn.functional as F
-from scipy.signal import butter
-from enum import Enum
 import os
+
+from constants import CHECKPOINT_CBL, CHECKPOINT_OPT
 
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device(
     "cpu")
-
-
-class EnvVar(Enum):
-    CHECKPOINT_OPT = "checkpoint/opt"
-    CHECKPOINT_CBL = "checkpoint/cbl"
 
 
 def reconstruct(kernels, a, stride, flca=False):
@@ -49,47 +44,22 @@ def load_optimized_cbl(epoch=None):
     if epoch == 0: # No need to load parameters if the resume epoch is 0
         return None, None, None
 
-    from tensorflow.data import TFRecordDataset
-    from tensorflow.core.util import event_pb2
+    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
     c = []
     b = []
     filter_ord = []
-    loss_train = []
-    loss_test = []
-    mses_train = []
-    mses_test = []
-    activity_train = []
-    activity_test = []
-
     path = os.path.join(
-        EnvVar.CHECKPOINT_CBL.value,
-        next(os.walk(EnvVar.CHECKPOINT_CBL.value), (None, None, []))[2][0])
-    for e in TFRecordDataset(path):
-        for v in event_pb2.Event.FromString(e.numpy()).summary.value:
-            if v.tag == 'Loss/train':
-                loss_train.append(v.simple_value)
-            elif v.tag == 'Loss/test':
-                loss_test.append(v.simple_value)
-            elif v.tag == 'MSE/train':
-                mses_train.append(v.simple_value)
-            elif v.tag == 'MSE/test':
-                mses_test.append(v.simple_value)
-            elif v.tag == 'Spikes_number/train':
-                activity_train.append(v.simple_value)
-            elif v.tag == 'Spikes_number/test':
-                activity_test.append(v.simple_value)
-
-        if epoch is None:
-            epoch = len(loss_train)
-
-        for v in event_pb2.Event.FromString(e.numpy()).summary.value:
-            if v.tag == 'C/epoch ' + str(epoch):
-                c.append([v.simple_value])
-            elif v.tag == 'b/epoch ' + str(epoch):
-                b.append([v.simple_value])
-            elif v.tag == 'filter_ord/epoch ' + str(epoch):
-                filter_ord.append([v.simple_value])
+        CHECKPOINT_CBL,
+        next(os.walk(CHECKPOINT_CBL), (None, None, []))[2][0])
+    acc = EventAccumulator(path)
+    acc.Reload()
+    if epoch is None:
+        epoch = len(acc.Scalars('Loss/test')) - 1
+    for ci, bi, filter_ordi in zip(acc.Scalars("C/epoch "+str(epoch)), acc.Scalars("b/epoch "+str(epoch)), acc.Scalars("filter_ord/epoch "+str(epoch))):
+        c.append([ci[2]])
+        b.append([bi[2]])
+        filter_ord.append([filter_ordi[2]])
     c = torch.tensor(c, dtype=torch.float64, requires_grad=True, device=device)
     b = torch.tensor(b, dtype=torch.float64, requires_grad=True, device=device)
     filter_ord = torch.tensor(filter_ord,
@@ -103,13 +73,13 @@ def load_optimizer(epoch):
     if epoch == 0:
         return None
     path = os.path.join(
-        EnvVar.CHECKPOINT_OPT.value,
-        next(os.walk(EnvVar.CHECKPOINT_OPT.value), (None, None, []))[2][0])
+        CHECKPOINT_OPT,
+        next(os.walk(CHECKPOINT_OPT), (None, None, []))[2][0])
     return torch.load(path)
 
 
-def compute_snr(lca):
-    res = lca.residual[:, 0].detach().cpu().numpy()
-    sig = lca.mini_batch[:, 0].detach().cpu().numpy()
+def compute_snr(residual, mini_batch):
+    res = residual[:, 0].detach().cpu().numpy()
+    sig = mini_batch[:, 0].detach().cpu().numpy()
     return np.mean(
         10 * np.log10(np.sum((sig - res)**2, axis=1) / np.sum(res**2, axis=1)))
