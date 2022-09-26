@@ -33,22 +33,19 @@ def run(lca, batches, mode='train', track=False):
     mse = 0
     snr = 0
     n = len(batches)
-
-    for it in range(n):
+    for it, batch in enumerate(batches):
         if it == Example.BATCH_ID.value and track: # just for plotting tracked info of the chosen example
             iters = lca.cm.iters
             lca.cm.iters = 2048
             lca.pm.iters = lca.cm.iters
             lca.pm.track = True
-            lca.mini_batch = batches[it]
-            lca()
+            lca(batch)
             lca.pm.track = False
             lca.cm.iters = iters
-            lca.pm.plot_waveform(batches[it][Example.SIG_ID.value], lca.cm.fs)
+            lca.pm.plot_waveform(batch[Example.SIG_ID.value], lca.cm.fs)
             lca.pm.plot_spg(lca.spikegram[Example.SIG_ID.value], lca.cm.central_freq, lca.cm.num_channels, lca.num_shifts)
-        lca.mini_batch = batches[it]
         lca.lm.optimizer.zero_grad()
-        lca()
+        lca(batch)
         act += np.mean(lca.sp_nb)
         mse += np.mean(lca.mse)
         loss += np.mean(lca.loss)
@@ -57,14 +54,14 @@ def run(lca, batches, mode='train', track=False):
     return loss / n, act / n, mse / n, snr / n
 
 
-def fit(lca, train_set, test_set, eval, plot, start):
+def fit(lca, train_loader, test_loader, eval, plot, start):
     if not eval:
         # tensorboard log
         writer = SummaryWriter(log_dir="checkpoint/cbl")
         for e in range(start, lca.lm.epochs + start, 1):
             print(f'epoch {e}:')
             # Train
-            loss, act, mse, snr = run(lca, train_set, mode='train')
+            loss, act, mse, snr = run(lca, train_loader, mode='train')
             # optimizer checkpoint
             torch.save(lca.lm.optimizer, EnvVar.CHECKPOINT_OPT.value)
             # Write train results
@@ -87,7 +84,7 @@ def fit(lca, train_set, test_set, eval, plot, start):
                                   lca.cm.filter_ord[i].item(),
                                   global_step=i)
             # Test
-            loss, act, mse, snr = run(lca, test_set, mode='eval')
+            loss, act, mse, snr = run(lca, test_loader, mode='eval')
             # Write test results
             writer.add_scalar('Loss/test', loss, e)
             writer.add_scalar('Spikes number/test', act, e)
@@ -139,14 +136,14 @@ def fit(lca, train_set, test_set, eval, plot, start):
                 lca.cm.c, lca.cm.b, lca.cm.filter_ord = c, b, filter_ord
                 w.append(lca.cm.compute_weights())
                 lca.pm.plot_ker(w[-1], lca.cm.fs)
-                loss, act, mse, snr = run(lca, test_set, mode='eval',track=True)
+                loss, act, mse, snr = run(lca, test_loader, mode='eval',track=True)
                 print(FilterBank(i).name, ":", act)
             lca.pm.plot_r(w)
             lca.pm.plot_boxes()
             lca.pm.plot_loss()
         else:
             # Test
-            loss, act, mse, snr = run(lca, test_set, mode='eval')
+            loss, act, mse, snr = run(lca, test_loader, mode='eval')
             print(
                 f'TEST: loss = {loss:.5f} / snr = {snr:.2f} dB / spike number = {act}'
             )
@@ -171,9 +168,9 @@ def main(args):
                         iters=args.iters,
                         device=device)
     # Load data
-    data_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, args.eval), args.batch_size, True, num_workers=4, pin_memory=True, pin_memory_device=device)
+    test_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, True), args.batch_size, True, num_workers=4, pin_memory=True, pin_memory_device=cm.device)
+    train_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, False), args.batch_size, True, num_workers=4, pin_memory=True, pin_memory_device=cm.device)
 
-    train_set, test_set = data_loader.load(args.path)
     # Create learning parameters
     if optimizer is None:
         if args.optimizer == 'adam':
@@ -201,7 +198,7 @@ def main(args):
     # Create LCA module
     lca = Lca(cm=cm, lm=lm, pm=pm)
     # Fit the module
-    fit(lca, train_set, test_set, args.eval, args.plot, args.resume)
+    fit(lca, train_loader, test_loader, args.eval, args.plot, args.resume)
 
 
 if __name__ == '__main__':
