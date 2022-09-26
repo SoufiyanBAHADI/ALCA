@@ -44,13 +44,13 @@ def run(lca, batches, mode='train', track=False):
             lca.cm.iters = 2048
             lca.pm.iters = lca.cm.iters
             lca.pm.track = True
-            lca(batch["recording"])
+            lca(batch["recording"].to(lca.cm.device))
             lca.pm.track = False
             lca.cm.iters = iters
             lca.pm.plot_waveform(np.squeeze(batch["recording"][Example.SIG_ID.value].cpu().numpy()), lca.cm.fs)
             lca.pm.plot_spg(lca.spikegram[Example.SIG_ID.value], lca.cm.central_freq, lca.cm.num_channels, lca.num_shifts)
         lca.lm.optimizer.zero_grad()
-        lca(batch["recording"])
+        lca(batch["recording"].to(lca.cm.device))
         act += np.mean(lca.sp_nb)
         mse += np.mean(lca.mse)
         loss += np.mean(lca.loss)
