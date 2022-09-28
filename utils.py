@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import os
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from constants import CHECKPOINT_CBL, CHECKPOINT_OPT
 
@@ -40,11 +41,9 @@ def mel_space(low, high, num_channels):
     return cf
 
 
-def load_optimized_cbl(epoch=None):
-    if epoch == 0: # No need to load parameters if the resume epoch is 0
+def load_optimized_cbl(resume=None):
+    if resume == 0: # No need to load parameters if the resume epoch is 0
         return None, None, None
-
-    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
     c = []
     b = []
@@ -54,8 +53,10 @@ def load_optimized_cbl(epoch=None):
         next(os.walk(CHECKPOINT_CBL), (None, None, []))[2][0])
     acc = EventAccumulator(path)
     acc.Reload()
-    if epoch is None:
+    if resume is None:
         epoch = len(acc.Scalars('Loss/test')) - 1
+    else:
+        epoch = resume - 1
     for ci, bi, filter_ordi in zip(acc.Scalars("C/epoch "+str(epoch)), acc.Scalars("b/epoch "+str(epoch)), acc.Scalars("filter_ord/epoch "+str(epoch))):
         c.append([ci[2]])
         b.append([bi[2]])
@@ -69,8 +70,8 @@ def load_optimized_cbl(epoch=None):
     return c, b, filter_ord
 
 
-def load_optimizer(epoch):
-    if epoch == 0:
+def load_optimizer(resume):
+    if resume == 0:
         return None
     path = os.path.join(
         CHECKPOINT_OPT,
