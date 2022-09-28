@@ -69,7 +69,7 @@ def fit(lca, train_loader, test_loader, eval, plot, start):
             # Train
             loss, act, mse, snr = run(lca, train_loader, mode='train')
             # optimizer checkpoint
-            torch.save(lca.lm.optimizer, os.path.join(dirname, CHECKPOINT_OPT))
+            torch.save(lca.lm.optimizer, os.path.join(dirname, CHECKPOINT_OPT, "optim_state"))
             # Write train results
             writer.add_scalar('Loss/train', loss, e)
             writer.add_scalar('Spikes number/train', act, e)
