@@ -4,7 +4,7 @@ Created on 30.09.2020
 @director: Jean Rouat
 @co-director: Eric Plourde
 """
-
+import os
 import numpy as np
 import random
 from torch import optim
@@ -61,14 +61,15 @@ def run(lca, batches, mode='train', track=False):
 
 def fit(lca, train_loader, test_loader, eval, plot, start):
     if not eval:
+        dirname = os.path.dirname(__file__)
         # tensorboard log
-        writer = SummaryWriter(log_dir=CHECKPOINT_CBL)
+        writer = SummaryWriter(log_dir=os.path.join(dirname, CHECKPOINT_CBL))
         for e in range(start, lca.lm.epochs + start, 1):
             print(f'epoch {e}:')
             # Train
             loss, act, mse, snr = run(lca, train_loader, mode='train')
             # optimizer checkpoint
-            torch.save(lca.lm.optimizer, CHECKPOINT_OPT)
+            torch.save(lca.lm.optimizer, os.path.join(dirname, CHECKPOINT_OPT))
             # Write train results
             writer.add_scalar('Loss/train', loss, e)
             writer.add_scalar('Spikes number/train', act, e)

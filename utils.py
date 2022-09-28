@@ -44,13 +44,13 @@ def mel_space(low, high, num_channels):
 def load_optimized_cbl(resume=None):
     if resume == 0: # No need to load parameters if the resume epoch is 0
         return None, None, None
-
+    dirname = os.path.dirname(__file__)
     c = []
     b = []
     filter_ord = []
-    path = os.path.join(
-        CHECKPOINT_CBL,
-        next(os.walk(CHECKPOINT_CBL), (None, None, []))[2][0])
+    path = os.path.join(dirname,
+                        CHECKPOINT_CBL,
+                        next(os.walk(CHECKPOINT_CBL), (None, None, []))[2][0])
     acc = EventAccumulator(path)
     acc.Reload()
     if resume is None:
@@ -73,9 +73,10 @@ def load_optimized_cbl(resume=None):
 def load_optimizer(resume):
     if resume == 0:
         return None
-    path = os.path.join(
-        CHECKPOINT_OPT,
-        next(os.walk(CHECKPOINT_OPT), (None, None, []))[2][0])
+    dirname = os.path.dirname(__file__)
+    path = os.path.join(dirname,
+                        CHECKPOINT_OPT,
+                        next(os.walk(CHECKPOINT_OPT), (None, None, []))[2][0])
     return torch.load(path)
 
 
