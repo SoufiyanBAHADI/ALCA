@@ -45,18 +45,14 @@ def load_optimized_cbl(resume=None):
     if resume == 0: # No need to load parameters if the resume epoch is 0
         return None, None, None
     dirname = os.path.dirname(__file__)
+    path = os.path.join(dirname, CHECKPOINT_CBL)
+    path = os.path.join(path, next(os.walk(path), (None, None, []))[2][0])
+    acc = EventAccumulator(path)
+    acc.Reload()
+    epoch = len(acc.Scalars('Loss/test')) - 1 if resume is None else resume - 1
     c = []
     b = []
     filter_ord = []
-    path = os.path.join(dirname,
-                        CHECKPOINT_CBL,
-                        next(os.walk(CHECKPOINT_CBL), (None, None, []))[2][0])
-    acc = EventAccumulator(path)
-    acc.Reload()
-    if resume is None:
-        epoch = len(acc.Scalars('Loss/test')) - 1
-    else:
-        epoch = resume - 1
     for ci, bi, filter_ordi in zip(acc.Scalars("C/epoch "+str(epoch)), acc.Scalars("b/epoch "+str(epoch)), acc.Scalars("filter_ord/epoch "+str(epoch))):
         c.append([ci[2]])
         b.append([bi[2]])
@@ -74,9 +70,8 @@ def load_optimizer(resume):
     if resume == 0:
         return None
     dirname = os.path.dirname(__file__)
-    path = os.path.join(dirname,
-                        CHECKPOINT_OPT,
-                        next(os.walk(CHECKPOINT_OPT), (None, None, []))[2][0])
+    path = os.path.join(dirname, CHECKPOINT_OPT)
+    path = os.path.join(path, next(os.walk(path), (None, None, []))[2][0])
     return torch.load(path)
 
 
