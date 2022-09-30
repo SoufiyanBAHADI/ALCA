@@ -43,6 +43,8 @@ class HdDataset(Dataset):
         rec = np.zeros(self.max_len)
         rec[:len(sig)] = sig
         lab = int(self.__filenames[index][-5])
+        if "german" in self.__filenames[index]:
+            lab = lab + 10
         sample = {"recording": rec, "label": lab}
         if self.transform:
             sample = self.transform(sample)
