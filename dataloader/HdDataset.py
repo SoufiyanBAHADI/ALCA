@@ -8,7 +8,7 @@ Created on 30.09.2020
 import os
 import sys
 import numpy as np
-from scipy.io import wavfile
+import soundfile as sf
 from torch.utils.data import Dataset
 import torch
 
@@ -24,7 +24,7 @@ class HdDataset(Dataset):
             paths = f.readlines()
         for p in paths:
             if lang in p or lang=="both":
-                self.__filenames.append(os.path.join(root_dir, "audio/" + p.replace('flac\n', 'wav')))
+                self.__filenames.append(os.path.join(root_dir, "audio/" + p[:-1]))
         if lang=="GERMAN":
             self.max_len = GERMAN_MAX_LEN
         elif lang=="english":
@@ -39,10 +39,10 @@ class HdDataset(Dataset):
         return len(self.__filenames)
     
     def __getitem__(self, index):
-        _, sig = wavfile.read(os.path.join(self.__filenames[index]))
+        sig, _ = sf.read(self.__filenames[index])
         rec = np.zeros(self.max_len)
         rec[:len(sig)] = sig
-        lab = int(self.__filenames[index][-5])
+        lab = int(self.__filenames[index][-6])
         if "german" in self.__filenames[index]:
             lab = lab + 10
         sample = {"recording": rec, "label": lab}

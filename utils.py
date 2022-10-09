@@ -72,7 +72,7 @@ def load_optimizer(resume):
     dirname = os.path.dirname(__file__)
     path = os.path.join(dirname, CHECKPOINT_OPT)
     path = os.path.join(path, next(os.walk(path), (None, None, []))[2][0])
-    return torch.load(path)
+    return torch.load(path, map_location=device)
 
 
 def compute_snr(residual, mini_batch):

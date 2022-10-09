@@ -23,5 +23,5 @@ class FilterBank(Enum):
     GT = 2
 
 class Example(Enum):
-    SIG_ID = 2
-    BATCH_ID = 61
+    SIG_ID = 7
+    BATCH_ID = 2

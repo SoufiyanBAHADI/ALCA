@@ -178,8 +178,8 @@ def main(args):
     g = torch.Generator()
     g.manual_seed(0xbadc0de)
     
-    test_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, True), args.batch_size, True, num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)  #, pin_memory_device=str(cm.device))
-    train_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, False), args.batch_size, False, num_workers=4, pin_memory=True)  #, pin_memory_device=str(cm.device))
+    test_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, True), args.batch_size, False, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, False), args.batch_size, True, num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 
     # Create learning parameters
     if optimizer is None:
@@ -281,7 +281,7 @@ if __name__ == '__main__':
         '--eval',
         action='store_true',
         help=
-        'Specifies weither the algorithm will run in the evaluation mode or the train mode. If it is not specified the algorithm will run in training mode'
+        'Specifies weither the algorithm will run in the evaluation mode or the train mode. The epoch to evaluate is the epoch that preceeds --resume. If --eval is not specified the algorithm will run in training mode.'
     )
     parser.add_argument('-v',
                         '--verbose',
