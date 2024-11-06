@@ -27,17 +27,17 @@ def seed_worker(worker_id):
     np.random.seed(0xbadc0de)
     random.seed(0xbadc0de)
 
-def run(lca, batches, mode='train', track=False):
+def run(lca:Lca, batches, mode='train', track=False):
     if mode == 'eval':
         lca.eval()
     elif mode == 'train':
         lca.train()
 
     loss = 0
-    act = 0
+    act:int = 0
     mse = 0
     snr = 0
-    n = len(batches)
+    total:int = 0
     for it, batch in enumerate(batches):
         if it == Example.BATCH_ID.value and track: # just for plotting tracked info of the chosen example
             iters = lca.cm.iters
@@ -50,20 +50,26 @@ def run(lca, batches, mode='train', track=False):
             lca.pm.plot_waveform(np.squeeze(batch["recording"][Example.SIG_ID.value].cpu().numpy()), lca.cm.fs)
             lca.pm.plot_spg(lca.spikegram[Example.SIG_ID.value], lca.cm.central_freq, lca.cm.num_channels, lca.num_shifts)
         lca.lm.optimizer.zero_grad()
-        lca(batch["recording"].to(lca.cm.device))
-        act += np.mean(lca.sp_nb)
-        mse += np.mean(lca.mse)
-        loss += np.mean(lca.loss)
-        snr += compute_snr(lca.residual, batch["recording"])
+        result = lca(batch["recording"].to(lca.cm.device))
+        if mode == "train":
+            result[0].backward()
+            # Optimize c, b, filter_order
+            lca.lm.optimizer.step()
+            lca.lm.optimizer.zero_grad()
+        act += int(np.sum(result[-1]))
+        mse += np.sum(result[-2])
+        loss += np.sum(result[-3])
+        snr += compute_snr(batch["recording"] - lca.residual.cpu(), batch["recording"])
+        total += len(batch["recording"])
 
-    return loss / n, act / n, mse / n, snr / n
+    return loss / total, act / total, mse / total, snr / total
 
 
 def fit(lca, train_loader, test_loader, eval, plot, start):
     if not eval:
         dirname = os.path.dirname(__file__)
         # tensorboard log
-        writer = SummaryWriter(log_dir=os.path.join(dirname, CHECKPOINT_CBL))
+        writer = SummaryWriter(log_dir=os.path.join(dirname, CHECKPOINT_CBL, str(lca.cm.num_channels)+"_"+str(lca.cm.threshold), "_chosen/1"), filename_suffix="_"+str(lca.cm.num_channels)+"_"+str(lca.cm.threshold))
         for e in range(start, lca.lm.epochs + start, 1):
             print(f'epoch {e}:')
             # Train
@@ -104,27 +110,27 @@ def fit(lca, train_loader, test_loader, eval, plot, start):
         if plot:
             c_aGC, b_aGC, filter_ord_aGC = load_optimized_cbl(10)
             c_cGC = torch.tensor([[0.979]] * lca.cm.num_channels,
-                                 dtype=torch.float64,
+                                 dtype=torch.float32,
                                  requires_grad=False,
                                  device=device)
             b_cGC = torch.tensor([[1.14]] * lca.cm.num_channels,
-                                 dtype=torch.float64,
+                                 dtype=torch.float32,
                                  requires_grad=False,
                                  device=device)
             filter_ord_cGC = torch.tensor([[4]] * lca.cm.num_channels,
-                                          dtype=torch.float64,
+                                          dtype=torch.float32,
                                           requires_grad=False,
                                           device=device)
             c_GT = torch.tensor([[0]] * lca.cm.num_channels,
-                                dtype=torch.float64,
+                                dtype=torch.float32,
                                 requires_grad=False,
                                 device=device)
             b_GT = torch.tensor([[1]] * lca.cm.num_channels,
-                                dtype=torch.float64,
+                                dtype=torch.float32,
                                 requires_grad=False,
                                 device=device)
             filter_ord_GT = torch.tensor([[4]] * lca.cm.num_channels,
-                                         dtype=torch.float64,
+                                         dtype=torch.float32,
                                          requires_grad=False,
                                          device=device)
             w = []
@@ -138,7 +144,6 @@ def fit(lca, train_loader, test_loader, eval, plot, start):
                 else:
                     c, b, filter_ord = c_GT, b_GT, filter_ord_GT
                     lca.pm.fb = FilterBank.GT.value
-                
                 lca.cm.c, lca.cm.b, lca.cm.filter_ord = c, b, filter_ord
                 w.append(lca.cm.compute_weights())
                 lca.pm.plot_ker(w[-1], lca.cm.fs)
@@ -158,6 +163,7 @@ def fit(lca, train_loader, test_loader, eval, plot, start):
 def main(args):
     # reproducibility
     torch.manual_seed(0xbadc0de)
+    print("NUMBER OF CPUS:", os.cpu_count())
     # Create LCA parameters
     c, b, filter_ord = load_optimized_cbl(args.resume)
     optimizer = load_optimizer(args.resume)
@@ -177,21 +183,22 @@ def main(args):
     # Load data
     g = torch.Generator()
     g.manual_seed(0xbadc0de)
-    
     test_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, True), args.batch_size, False, num_workers=4, pin_memory=True)
     train_loader = DataLoader(HdDataset(cm, args.path, transforms.Compose([ToTensor(), Normalize()]), args.lang, False), args.batch_size, True, num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
-
     # Create learning parameters
+    params = cm.parameters()
     if optimizer is None:
         if args.optimizer == 'adam':
-            optimizer = optim.Adam(cm.parameters(), lr=args.lr, amsgrad=True)
+            optimizer = optim.Adam(params, lr=args.lr, amsgrad=True)
         elif args.optimizer == 'sgd':
-            optimizer = optim.SGD(cm.parameters(), lr=args.lr, amsgrad=True)
+            optimizer = optim.SGD(params, lr=args.lr, amsgrad=True)
+        elif args.optimizer == 'adamax':
+            optimizer = optim.Adamax(params, lr=args.lr)
         else:
-            optimizer = optim.Adam(cm.parameters(), lr=args.lr, amsgrad=True)
+            optimizer = optim.Adam(params, lr=args.lr, amsgrad=True)
     else:
+        #TODO: params
         optimizer.param_groups[0]['params'] = cm.parameters()
-    
     # Solved with checkpoint
     # for _ in range(args.resume):
         # for __ in range(len(train_set)):
@@ -201,7 +208,8 @@ def main(args):
                     # optimizer.zero_grad()
     lm = LearningManager(optimizer=optimizer,
                          buffer_size=args.buffer_size,
-                         epochs=args.epochs)
+                         epochs=args.epochs,
+                         beta=args.beta)
     pm = None
     if args.plot:
         pm = PlottingManager()
@@ -253,7 +261,7 @@ if __name__ == '__main__':
                         default=64,
                         help='The LCA\'s iterations.')
     parser.add_argument('--optimizer',
-                        choices=['sgd', 'adam'],
+                        choices=['sgd', 'adam', 'adamax'],
                         default='adam',
                         type=str,
                         help='The optimizer needed for training.')
@@ -293,12 +301,18 @@ if __name__ == '__main__':
     parser.add_argument('--resume',
                         type=int,
                         default=0,
-                        help='The epoch from which the learning will resume')
+                        help='The epoch from which the learning will resume.')
     parser.add_argument(
         '--plot',
         action='store_true',
         help=
         'If specified the program will plot all outputs. --eval should be specified'
+    )
+    parser.add_argument(
+        '--beta',
+        type=float,
+        default=1,
+        help= 'loss sparsity scale'
     )
     args = parser.parse_args()
     main(args)

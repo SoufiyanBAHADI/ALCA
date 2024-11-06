@@ -26,80 +26,59 @@ class ContextManager:
                  device=torch.device("cuda")):
         self.tau = tau
         self.dt = dt
-
-        if c is None:
-            if random_init:
-                c = torch.empty((num_channels, 1),
-                                dtype=torch.float64,
-                                requires_grad=True,
-                                device=device)
-                torch.nn.init.xavier_normal_(c, 2)
-            else:
-                c = torch.zeros((num_channels, 1),
-                                dtype=torch.float64,
-                                requires_grad=True,
-                                device=device)
-        if b is None:
-            if random_init:
-                b = torch.empty((num_channels, 1),
-                    dtype=torch.float64,
-                    requires_grad=True,
-                    device=device)
-                torch.nn.init.xavier_normal_(c, 2)
-            else:
-                b = torch.tensor([[1]] * num_channels,
-                                dtype=torch.float64,
-                                requires_grad=True,
-                                device=device)
-        if filter_ord is None:
-            if random_init:
-                filter_ord = torch.empty((num_channels, 1),
-                    dtype=torch.float64,
-                    requires_grad=True,
-                    device=device)
-                torch.nn.init.xavier_normal_(c, 2)
-            else:
-                filter_ord = torch.tensor([[4]] * num_channels,
-                                        dtype=torch.float64,
-                                        requires_grad=True,
-                                        device=device)
-        self.c = c
-        self.b = b
-        self.filter_ord = filter_ord
+        self.random_init = random_init
+        self.device = device
         self.threshold = threshold
         self.stride = stride
         self.num_channels = num_channels
         self.ker_len = ker_len
         self.iters = iters
         self.device = device
-        self.__t = None
-        self.__bandwidth = None
-        self.__central_freq = None
+        if c is None:
+            self.reset()
+        else:
+            self.c = c
+            self.b = b
+            self.filter_ord = filter_ord
+        self._t = None
+        self._bandwidth = None
+        self._central_freq = None
         self.fs = fs
 
     @property
     def fs(self):
-        return self.__fs
-    
+        return self._fs
+
     @property
     def central_freq(self):
-        return self.__central_freq
+        return self._central_freq
+
+    @property
+    def bandwidth(self):
+        return self._bandwidth
+
+    @central_freq.setter
+    def central_freq(self, value):
+        self._central_freq = value
+        self._bandwidth = 0.1039 * self._central_freq + 24.7
 
     @fs.setter
     def fs(self, value):
         if value is not None:
-            self.__fs = value
-            self.__t = (torch.arange(
-                self.ker_len, dtype=torch.float64, device=self.device).view(
-                    1, -1).repeat(self.num_channels, 1) + 1) / self.__fs
-            self.__central_freq = torch.from_numpy(self.__erb_space()).view(
-                -1, 1).to(self.device)
-            self.__bandwidth = 0.1039 * self.__central_freq + 24.7
+            self._fs = value
+            self._t = (torch.arange(
+                self.ker_len, dtype=torch.float32, device=self.device).view(
+                    1, -1).repeat(self.num_channels, 1) + 1) / self._fs
+            if self._central_freq is None:  # If central freq is not set manually
+                self._central_freq = torch.from_numpy(self._erb_space()).float().view(
+                    -1, 1).to(self.device)
+            self._bandwidth = 0.1039 * self._central_freq + 24.7
 
     def parameters(self):
-        return [self.c, self.b, self.filter_ord]
+        # self.central_freq.requires_grad_()
+        return [self.c, self.b, self.filter_ord]#, self.central_freq]
 
-    def __erb_space(self, low_freq=100):
+    def _erb_space(self, low_freq=100):
         # Glasberg and Moore Parameters
         ear_q = 9.26449
         min_bw = 24.7
@@ -113,12 +92,59 @@ class ContextManager:
              np.log(low_freq + ear_q * min_bw)) /
             self.num_channels) * (high_freq + ear_q * min_bw)
 
-    def compute_weights(self):
-        weights = self.__t**(self.filter_ord - 1) * torch.exp(
-            -2 * np.pi * self.b * self.__bandwidth *
-            self.__t) * torch.cos(2 * np.pi * self.__central_freq * self.__t +
-                                  self.c * torch.log(self.__t))
-
-        weights = weights / torch.norm(weights, p=2, dim=1).view(-1, 1)
-        weights = weights.view(self.__t.shape[0], 1, -1).double().to(self.device)
+    def compute_weights(self) -> torch.Tensor:
+        self._bandwidth = 0.1039 * self._central_freq + 24.7
+        weights = self._t**(self.filter_ord - 1) * torch.exp(
+            -2 * np.pi * self.b * self._bandwidth *
+            self._t) * torch.cos(2 * np.pi * self._central_freq * self._t +
+                                  self.c * torch.log(self._t))
+        idx = torch.argwhere(torch.norm(weights, p=2, dim=-1) == 0).squeeze()
+        weights = (weights / torch.unsqueeze(torch.norm(weights, p=2, dim=-1), dim=-1)).float()
+        weights[idx]=0
         return weights
+
+    def reset(self, batch_size = None):
+        if batch_size is not None:
+            requires_grad = self.c.requires_grad
+            with torch.no_grad():
+                self.c = torch.stack([self.c]*batch_size)
+                self.b = torch.stack([self.b]*batch_size)
+                self.filter_ord = torch.stack([self.filter_ord]*batch_size)
+            self.c.requires_grad_(requires_grad)
+            self.b.requires_grad_(requires_grad)
+            self.filter_ord.requires_grad_(requires_grad)
+
+        else:
+            if self.random_init:
+                self.c = torch.empty((self.num_channels, 1),
+                                dtype=torch.float32,
+                                requires_grad=True,
+                                device=self.device)
+                torch.nn.init.xavier_normal_(self.c, 2)
+            else:
+                self.c = torch.zeros((self.num_channels, 1),
+                                dtype=torch.float32,
+                                requires_grad=True,
+                                device=self.device)
+            if self.random_init:
+                self.b = torch.empty((self.num_channels, 1),
+                    dtype=torch.float32,
+                    requires_grad=True,
+                    device=self.device)
+                torch.nn.init.xavier_normal_(self.c, 2)
+            else:
+                self.b = torch.tensor([[1]] * self.num_channels,
+                                dtype=torch.float32,
+                                requires_grad=True,
+                                device=self.device)
+            if self.random_init:
+                self.filter_ord = torch.empty((self.num_channels, 1),
+                    dtype=torch.float32,
+                    requires_grad=True,
+                    device=self.device)
+                torch.nn.init.xavier_normal_(self.c, 2)
+            else:
+                self.filter_ord = torch.tensor([[4]] * self.num_channels,
+                                        dtype=torch.float32,
+                                        requires_grad=True,
+                                        device=self.device)

@@ -34,10 +34,10 @@ class HdDataset(Dataset):
         self.max_len += context_manager.stride - (
             self.max_len -
             context_manager.ker_len) % context_manager.stride
-    
+
     def __len__(self):
         return len(self.__filenames)
-    
+
     def __getitem__(self, index):
         sig, _ = sf.read(self.__filenames[index])
         rec = np.zeros(self.max_len)
@@ -53,7 +53,7 @@ class HdDataset(Dataset):
 class ToTensor:
     """Convert data in sample to Tensors."""
     def __call__(self, sample):
-        return {"recording": torch.from_numpy(sample['recording'][None, :]).double(),
+        return {"recording": torch.from_numpy(sample['recording'][None, :]).float(),
                 "label": torch.Tensor([sample['label']]).long()}
 
 class Normalize:

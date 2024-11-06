@@ -16,6 +16,7 @@ FS = 48000  # Sample frequency in Hz
 # GERMAN_TEST_NUM_SAMPLES = 1185
 CHECKPOINT_OPT = "checkpoint/opt"  # checkpoint dirrectory of the optimizer
 CHECKPOINT_CBL = "checkpoint/cbl"   # checkpoint dirrectory of parameters c b and l
+SIG_CHANNELS = 1
 
 class FilterBank(Enum):
     aGC = 0

@@ -17,5 +17,7 @@ class Sparsity(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         u, a, = ctx.saved_tensors
-        grad_a = u - a
+        for _ in range(len(u.shape)-1):
+            grad_output = grad_output.unsqueeze(-1)
+        grad_a = grad_output * (u - a)
         return grad_a, grad_a, None

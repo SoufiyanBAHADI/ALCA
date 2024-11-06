@@ -13,8 +13,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from constants import CHECKPOINT_CBL, CHECKPOINT_OPT
 
-device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device(
-    "cpu")
+device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
 
 def reconstruct(kernels, a, stride, flca=False):
@@ -57,10 +56,10 @@ def load_optimized_cbl(resume=None):
         c.append([ci[2]])
         b.append([bi[2]])
         filter_ord.append([filter_ordi[2]])
-    c = torch.tensor(c, dtype=torch.float64, requires_grad=True, device=device)
-    b = torch.tensor(b, dtype=torch.float64, requires_grad=True, device=device)
+    c = torch.tensor(c, dtype=torch.float32, requires_grad=True, device=device)
+    b = torch.tensor(b, dtype=torch.float32, requires_grad=True, device=device)
     filter_ord = torch.tensor(filter_ord,
-                              dtype=torch.float64,
+                              dtype=torch.float32,
                               requires_grad=True,
                               device=device)
     return c, b, filter_ord
@@ -75,8 +74,5 @@ def load_optimizer(resume):
     return torch.load(path, map_location=device)
 
 
-def compute_snr(residual, mini_batch):
-    res = residual[:, 0].detach().cpu().numpy()
-    sig = mini_batch[:, 0].detach().cpu().numpy()
-    return np.mean(
-        10 * np.log10(np.sum((sig - res)**2, axis=1) / np.sum(res**2, axis=1)))
+def compute_snr(reconstructed, signal):
+    return 10 * torch.log10(torch.squeeze(reconstructed**2).sum(dim=-1) / (torch.squeeze(signal - reconstructed)**2).sum(dim=-1)).sum().item()
