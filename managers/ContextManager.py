@@ -101,7 +101,7 @@ class ContextManager:
         idx = torch.argwhere(torch.norm(weights, p=2, dim=-1) == 0).squeeze()
         weights = (weights / torch.unsqueeze(torch.norm(weights, p=2, dim=-1), dim=-1)).float()
         weights[idx]=0
-        return weights
+        return torch.unsqueeze(weights, dim=-2)  # the unsqueeze is for the vmap processing in lca forwad
 
     def reset(self, batch_size = None):
         if batch_size is not None:
