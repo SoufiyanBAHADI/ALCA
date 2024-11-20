@@ -13,7 +13,7 @@ class ContextManager:
     def __init__(self,
                  tau,
                  dt,
-                 fs,
+                 fs=None,
                  c=None,
                  b=None,
                  filter_ord=None,
@@ -103,48 +103,33 @@ class ContextManager:
         weights[idx]=0
         return torch.unsqueeze(weights, dim=-2)  # the unsqueeze is for the vmap processing in lca forwad
 
-    def reset(self, batch_size = None):
-        if batch_size is not None:
-            requires_grad = self.c.requires_grad
-            with torch.no_grad():
-                self.c = torch.stack([self.c]*batch_size)
-                self.b = torch.stack([self.b]*batch_size)
-                self.filter_ord = torch.stack([self.filter_ord]*batch_size)
-            self.c.requires_grad_(requires_grad)
-            self.b.requires_grad_(requires_grad)
-            self.filter_ord.requires_grad_(requires_grad)
-
+    def _reset(self):
+        if self.random_init:
+            self.c = torch.empty((self.num_channels, 1),
+                            dtype=torch.float32,
+                            requires_grad=True,
+                            device=self.device)
+            torch.nn.init.xavier_normal_(self.c, 2)
+            self.b = torch.empty((self.num_channels, 1),
+                                 dtype=torch.float32,
+                                 requires_grad=True,
+                                 device=self.device)
+            torch.nn.init.xavier_normal_(self.c, 2)
+            self.filter_ord = torch.empty((self.num_channels, 1),
+                                          dtype=torch.float32,
+                                          requires_grad=True,
+                                          device=self.device)
+            torch.nn.init.xavier_normal_(self.c, 2)
         else:
-            if self.random_init:
-                self.c = torch.empty((self.num_channels, 1),
-                                dtype=torch.float32,
-                                requires_grad=True,
-                                device=self.device)
-                torch.nn.init.xavier_normal_(self.c, 2)
-            else:
-                self.c = torch.zeros((self.num_channels, 1),
-                                dtype=torch.float32,
-                                requires_grad=True,
-                                device=self.device)
-            if self.random_init:
-                self.b = torch.empty((self.num_channels, 1),
-                    dtype=torch.float32,
-                    requires_grad=True,
-                    device=self.device)
-                torch.nn.init.xavier_normal_(self.c, 2)
-            else:
-                self.b = torch.tensor([[1]] * self.num_channels,
-                                dtype=torch.float32,
-                                requires_grad=True,
-                                device=self.device)
-            if self.random_init:
-                self.filter_ord = torch.empty((self.num_channels, 1),
-                    dtype=torch.float32,
-                    requires_grad=True,
-                    device=self.device)
-                torch.nn.init.xavier_normal_(self.c, 2)
-            else:
-                self.filter_ord = torch.tensor([[4]] * self.num_channels,
-                                        dtype=torch.float32,
-                                        requires_grad=True,
-                                        device=self.device)
+            self.c = torch.zeros((self.num_channels, 1),
+                            dtype=torch.float32,
+                            requires_grad=True,
+                            device=self.device)
+            self.b = torch.tensor([[1]] * self.num_channels,
+                                  dtype=torch.float32,
+                                  requires_grad=True,
+                                  device=self.device)
+            self.filter_ord = torch.tensor([[4]] * self.num_channels,
+                                           dtype=torch.float32,
+                                           requires_grad=True,
+                                           device=self.device)
