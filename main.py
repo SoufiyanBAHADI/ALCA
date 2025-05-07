@@ -59,7 +59,7 @@ def run(lca:Lca, batches, mode='train', track=False):
         act += int(np.sum(result[-1]))
         mse += np.sum(result[-2])
         loss += np.sum(result[-3])
-        snr += compute_snr(batch["recording"] - lca.residual.cpu(), batch["recording"])
+        snr += compute_snr(lca.residual.cpu(), batch["recording"])
         total += len(batch["recording"])
 
     return loss / total, act / total, mse / total, snr / total
