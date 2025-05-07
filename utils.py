@@ -74,5 +74,5 @@ def load_optimizer(resume):
     return torch.load(path, map_location=device)
 
 
-def compute_snr(reconstructed, signal):
-    return 10 * torch.log10(torch.squeeze(reconstructed**2).sum(dim=-1) / (torch.squeeze(signal - reconstructed)**2).sum(dim=-1)).sum().item()
+def compute_snr(residual, signal):
+    return 10 * torch.log10(torch.squeeze(signal**2).sum(dim=-1) / (torch.squeeze(residual)**2).sum(dim=-1)).sum().item()
