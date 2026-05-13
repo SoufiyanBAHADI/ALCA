@@ -35,7 +35,7 @@ class ContextManager:
         self.iters = iters
         self.device = device
         if c is None:
-            self.reset()
+            self._reset()
         else:
             self.c = c
             self.b = b
